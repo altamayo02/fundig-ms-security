@@ -4,6 +4,8 @@ import edu.prog3.mssecurity.Models.Role;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Repositories.RoleRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
+import edu.prog3.mssecurity.Services.EncryptionService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,25 +20,27 @@ public class UsersController {
     private UserRepository theUserRepository;
     @Autowired
     private RoleRepository theRoleRepository;
+    @Autowired
+    private EncryptionService theEncryptionService;
 
-
-    @GetMapping("")
+    @GetMapping
     public List<User> findAll() {
         return this.theUserRepository.findAll();
     }
 
-    @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping
-    public User create(@RequestBody User theNewUser) {
-        return this.theUserRepository.save(theNewUser);
-    }
-    
     @GetMapping("{id}")
     public User findById(@PathVariable String id) {
         User theUser = this.theUserRepository
                 .findById(id)
                 .orElse(null);
         return theUser;
+    }
+
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping
+    public User create(@RequestBody User theNewUser) {
+        theNewUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
+        return this.theUserRepository.save(theNewUser);
     }
 
     @PutMapping("{id}")
@@ -47,21 +51,10 @@ public class UsersController {
         if (theActualUser != null) {
             theActualUser.setName(theNewUser.getName());
             theActualUser.setEmail(theNewUser.getEmail());
-            theActualUser.setPassword(theNewUser.getPassword());
+            theActualUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
             return this.theUserRepository.save(theActualUser);
         } else {
             return null;
-        }
-    }
-
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("{id}")
-    public void delete(@PathVariable String id) {
-        User theUser = this.theUserRepository
-                .findById(id)
-                .orElse(null);
-        if (theUser != null) {
-            this.theUserRepository.delete(theUser);
         }
     }
 
@@ -83,11 +76,11 @@ public class UsersController {
     }
 
     @PutMapping("{userId}/unmatch-role/{roleId}")
-    public User unMatchRole(@PathVariable String userId,@PathVariable String roleId) {
+    public User unMatchRole(@PathVariable String userId, @PathVariable String roleId) {
         User theActualUser = this.theUserRepository
                 .findById(userId)
                 .orElse(null);
-        Role theActualRole=this.theRoleRepository
+        Role theActualRole = this.theRoleRepository
                 .findById(roleId)
                 .orElse(null);
 
@@ -96,8 +89,17 @@ public class UsersController {
                 && theActualUser.getRole().get_id().equals(roleId)) {
             theActualUser.setRole(null);
             return this.theUserRepository.save(theActualUser);
-        } else {
-            return null;
+        } else return null;
+    }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("{id}")
+    public void delete(@PathVariable String id) {
+        User theUser = this.theUserRepository
+                .findById(id)
+                .orElse(null);
+        if (theUser != null) {
+            this.theUserRepository.delete(theUser);
         }
     }
 }
