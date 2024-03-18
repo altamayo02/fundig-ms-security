@@ -2,6 +2,7 @@ package edu.prog3.mssecurity.Models;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -9,7 +10,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class RolePermission {
     @Id
     private String _id;
+    @DBRef
     private Role role;
+    @DBRef
     private Permission permission;
 
     public RolePermission() {}

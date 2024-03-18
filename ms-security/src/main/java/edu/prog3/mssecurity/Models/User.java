@@ -16,18 +16,20 @@ public class User {
     @DBRef
     private Role role;
 
+    public User() {}
+    
     public User(String name, String email, String password) {
         this.name = name;
         this.email = email;
         this.password = password;
     }
 
-    public User(){
-
-    }
-
     public String get_id() {
         return this._id;
+    }
+
+    public void set_id(String id) {
+        this._id = id;
     }
 
     public String getName() {
