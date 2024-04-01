@@ -30,12 +30,14 @@ public class SecurityController {
     public String login(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
         String token = "";
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+		
 
         if (
             theCurrentUser != null &&
             theCurrentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
         ) {
 			// TODO - Instance Session (If user exists)
+
             token = this.theJwtService.generateToken(theCurrentUser);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
