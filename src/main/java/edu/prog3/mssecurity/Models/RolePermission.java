@@ -26,7 +26,7 @@ public class RolePermission {
     }
 
     public void setRole(Role role) {
-         this.role = role;
+        this.role = role;
     }
 
     public Permission getPermission() {
@@ -34,6 +34,6 @@ public class RolePermission {
     }
 
     public void setPermission(Permission permission) {
-         this.permission = permission;
+        this.permission = permission;
     }
 }

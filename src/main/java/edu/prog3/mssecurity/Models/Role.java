@@ -21,16 +21,12 @@ public class Role {
         return this._id;
     }
 
-    public void setId(String id) {
-         this._id = id;
-    }
-
     public String getName() {
         return this.name;
     }
 
     public void setName(String name) {
-         this.name = name;
+        this.name = name;
     }
 
     public String getDescription() {
@@ -38,6 +34,6 @@ public class Role {
     }
 
     public void setDescription(String description) {
-         this.description = description;
+        this.description = description;
     }
 }
