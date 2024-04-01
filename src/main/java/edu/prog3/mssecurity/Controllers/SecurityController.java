@@ -25,17 +25,17 @@ public class SecurityController {
     @Autowired
     private JwtService theJwtService;
 
+	
     @PostMapping("login")
     public String login(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
         String token = "";
-
-        User currentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
 
         if (
-            currentUser != null &&
-            currentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
+            theCurrentUser != null &&
+            theCurrentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
         ) {
-            token = this.theJwtService.generateToken(currentUser);
+            token = this.theJwtService.generateToken(theCurrentUser);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }

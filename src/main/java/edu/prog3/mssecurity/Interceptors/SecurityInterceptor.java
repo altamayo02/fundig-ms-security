@@ -13,6 +13,8 @@ import org.springframework.web.servlet.ModelAndView;
 public class SecurityInterceptor implements HandlerInterceptor {
     @Autowired
     private ValidatorsService validatorService;
+
+	
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,

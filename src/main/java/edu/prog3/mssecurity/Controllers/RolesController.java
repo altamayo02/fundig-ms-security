@@ -45,9 +45,7 @@ public class RolesController {
             theActualRole.setDescription(theNewRole.getDescription());
 
             return this.theRoleRepository.save(theActualRole);
-        } else {
-            return null;
-        }
+        } else return null;
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)

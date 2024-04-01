@@ -24,6 +24,7 @@ public class PermissionsController {
     @Autowired
     private PermissionRepository thePermissionRepository;
 
+	
     @GetMapping("")
     public List<Permission> findAll() {
         return this.thePermissionRepository.findAll();

@@ -23,6 +23,7 @@ public class UsersController {
     @Autowired
     private EncryptionService theEncryptionService;
 
+	
     @GetMapping
     public List<User> findAll() {
         return this.theUserRepository.findAll();
@@ -53,42 +54,40 @@ public class UsersController {
             theActualUser.setEmail(theNewUser.getEmail());
             theActualUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
             return this.theUserRepository.save(theActualUser);
-        } else {
-            return null;
-        }
+        } else return null;
     }
 
     @PutMapping("{userId}/role/{roleId}")
     public User matchRole(@PathVariable String userId,@PathVariable String roleId) {
-        User theActualUser = this.theUserRepository
-                .findById(userId)
-                .orElse(null);
-        Role theActualRole=this.theRoleRepository
-                .findById(roleId)
-                .orElse(null);
-
-        if (theActualUser != null && theActualRole!=null) {
-            theActualUser.setRole(theActualRole);
-            return this.theUserRepository.save(theActualUser);
-        } else {
-            return null;
-        }
-    }
-
-    @PutMapping("{userId}/unmatch-role/{roleId}")
-    public User unMatchRole(@PathVariable String userId, @PathVariable String roleId) {
-        User theActualUser = this.theUserRepository
+        User theCurrentUser = this.theUserRepository
                 .findById(userId)
                 .orElse(null);
         Role theActualRole = this.theRoleRepository
                 .findById(roleId)
                 .orElse(null);
 
-        if (theActualUser != null
-                && theActualRole!=null
-                && theActualUser.getRole().get_id().equals(roleId)) {
-            theActualUser.setRole(null);
-            return this.theUserRepository.save(theActualUser);
+        if (theCurrentUser != null && theActualRole != null) {
+            theCurrentUser.setRole(theActualRole);
+            return this.theUserRepository.save(theCurrentUser);
+        } else return null;
+    }
+
+    @PutMapping("{userId}/unmatch-role/{roleId}")
+    public User unMatchRole(@PathVariable String userId, @PathVariable String roleId) {
+        User theCurrentUser = this.theUserRepository
+                .findById(userId)
+                .orElse(null);
+        Role theCurrentRole = this.theRoleRepository
+                .findById(roleId)
+                .orElse(null);
+
+        if (
+			theCurrentUser != null &&
+			theCurrentRole != null &&
+			theCurrentUser.getRole().get_id().equals(roleId)
+		) {
+            theCurrentUser.setRole(null);
+            return this.theUserRepository.save(theCurrentUser);
         } else return null;
     }
 

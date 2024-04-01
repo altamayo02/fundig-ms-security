@@ -31,6 +31,7 @@ public class RolePermissionController {
     @Autowired
     private RolePermissionRepository theRolePermissionRepository;
 
+	
     @GetMapping("role/{roleId}")
     public List<RolePermission> findByRole(@PathVariable String roleId) {
         return theRolePermissionRepository.getPermissionsByRole(roleId);
