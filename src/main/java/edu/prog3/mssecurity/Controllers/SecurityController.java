@@ -35,9 +35,11 @@ public class SecurityController {
             theCurrentUser != null &&
             theCurrentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
         ) {
+			// TODO - Instance Session (If user exists)
             token = this.theJwtService.generateToken(theCurrentUser);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+			// TODO - Instance ghost Session (If user exists)
         }
         return token;
     }
