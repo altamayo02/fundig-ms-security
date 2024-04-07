@@ -19,13 +19,13 @@ import edu.prog3.mssecurity.Repositories.PermissionRepository;
 
 @CrossOrigin
 @RestController
-@RequestMapping("/permissions")
+@RequestMapping("/api/permissions")
 public class PermissionsController {
     @Autowired
     private PermissionRepository thePermissionRepository;
 
 	
-    @GetMapping("")
+    @GetMapping
     public List<Permission> findAll() {
         return this.thePermissionRepository.findAll();
     }

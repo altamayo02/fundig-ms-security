@@ -22,7 +22,7 @@ import edu.prog3.mssecurity.Repositories.RoleRepository;
 
 @CrossOrigin
 @RestController
-@RequestMapping("/role-permission")
+@RequestMapping("/api/role-permission")
 public class RolePermissionController {
     @Autowired
     private RoleRepository theRoleRepository;
@@ -52,6 +52,7 @@ public class RolePermissionController {
             newRolePermission.setRole(theRole);
             newRolePermission.setPermission(thePermission);
             return this.theRolePermissionRepository.save(newRolePermission);
+		// Why does it still return 201 here?
         } else return null;
     }
 
