@@ -12,6 +12,7 @@ import edu.prog3.mssecurity.Models.Session;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
+import edu.prog3.mssecurity.Services.HttpService;
 import edu.prog3.mssecurity.Services.JwtService;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -19,7 +20,7 @@ import java.util.Random;
 
 import jakarta.servlet.http.HttpServletResponse;
 
-@CrossOrigin
+@CrossOrigin    
 @RestController
 @RequestMapping("/api/public/security")
 public class SecurityController {
@@ -46,6 +47,10 @@ public class SecurityController {
             int code = new Random().nextInt(900000) + 100000;
             Session session = new Session(code, theCurrentUser);
             this.theSessionRepository.save(session);
+
+            String urlNotification="localhost:5000/send_email";
+            String body="{\"to\": \""+theUser.getEmail()+"\", \"template\": \"TWOFACTOR\", \"pin\": "+code;
+            new HttpService(urlNotification, body).consumePostService();
 
             message = session.get_id();
         } else {
