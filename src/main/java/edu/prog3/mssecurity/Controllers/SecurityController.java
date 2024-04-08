@@ -8,16 +8,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import edu.prog3.mssecurity.Models.User;
+import edu.prog3.mssecurity.Models.Permission;
 import edu.prog3.mssecurity.Models.Session;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
 import edu.prog3.mssecurity.Services.JwtService;
+import edu.prog3.mssecurity.Services.ValidatorsService;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Random;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @CrossOrigin    
@@ -31,17 +35,24 @@ public class SecurityController {
     @Autowired
     private JwtService theJwtService;
     @Autowired
+    private ValidatorsService theValidatorsService;
+    @Autowired
     private SessionRepository theSessionRepository;
 
 	
     @PostMapping("login")
-    public String login(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
+    public String login(
+        @RequestBody User theUser,
+        final HttpServletResponse response
+    ) throws IOException {
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-        String message="";
+        String message = "";
 
         if (
             theCurrentUser != null &&
-            theCurrentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
+            theCurrentUser.getPassword().equals(
+                this.theEncryptionService.convertSHA256(theUser.getPassword())
+            )
         ) {
 			// TODO - Instance Session (If user exists)
             int code = new Random().nextInt(900000) + 100000;
@@ -49,7 +60,10 @@ public class SecurityController {
             this.theSessionRepository.save(session);
 
             String urlNotification="127.0.0.1:5000/send_email";
-            String body="{'to': '"+theUser.getEmail()+"', 'template': 'TWOFACTOR', 'pin': "+code+"}";
+            String body = (
+                "{'to': '" + theUser.getEmail() +
+                "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
+            );
             new HttpService(urlNotification, body).consumePostService();
 
             message = session.get_id();
@@ -76,5 +90,17 @@ public class SecurityController {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
         return token;
+    }
+
+    public boolean permissionsValidation(
+        final HttpServletRequest request,
+        @RequestBody Permission thePermission
+    ) {
+        boolean success = this.theValidatorsService.validationRolePermission(
+            request,
+            thePermission.getUrl(),
+            thePermission.getMethod()
+        );
+        return success;
     }
 }
