@@ -9,8 +9,9 @@ import java.net.http.HttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 
+// UNUSED
 @Service
-public class SecondHttpService {
+public class SpringlessHttpService {
     @PostMapping
 	public void call(String URL, String requestBody) {   
 		HttpRequest request = HttpRequest.newBuilder()

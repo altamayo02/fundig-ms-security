@@ -48,8 +48,8 @@ public class SecurityController {
             Session session = new Session(code, theCurrentUser);
             this.theSessionRepository.save(session);
 
-            String urlNotification="localhost:5000/send_email";
-            String body="{\"to\": \""+theUser.getEmail()+"\", \"template\": \"TWOFACTOR\", \"pin\": "+code;
+            String urlNotification="127.0.0.1:5000/send_email";
+            String body="{'to': '"+theUser.getEmail()+"', 'template': 'TWOFACTOR', 'pin': "+code+"}";
             new HttpService(urlNotification, body).consumePostService();
 
             message = session.get_id();

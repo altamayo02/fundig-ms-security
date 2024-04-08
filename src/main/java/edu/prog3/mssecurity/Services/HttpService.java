@@ -25,6 +25,6 @@ public class HttpService {
         HttpEntity<String> httpEntity= new HttpEntity<>(this.body, this.headers);
 
         String answer = restTemplate.postForObject(this.URL,httpEntity, String.class);
-        System.out.println(answer);
+        System.out.println("HttpService: " + answer);
     }
 }
