@@ -15,7 +15,6 @@ import edu.prog3.mssecurity.Models.Session;
 import edu.prog3.mssecurity.Models.ErrorStatistic;
 import edu.prog3.mssecurity.Repositories.ErrorStatisticRepository;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
-import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
@@ -65,7 +64,7 @@ public class SecurityController {
                 Session session = new Session(code, theCurrentUser);
                 this.theSessionRepository.save(session);
     
-                String urlNotification="127.0.0.1:5000/send_email";
+                String urlNotification="https://127.0.0.1:5000/send_email";
                 String body = (
                     "{'to': '" + theUser.getEmail() +
                     "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
