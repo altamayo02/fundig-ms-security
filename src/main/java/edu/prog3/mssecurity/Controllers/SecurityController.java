@@ -1,7 +1,9 @@
 package edu.prog3.mssecurity.Controllers;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +15,7 @@ import edu.prog3.mssecurity.Models.Session;
 import edu.prog3.mssecurity.Models.ErrorStatistic;
 import edu.prog3.mssecurity.Repositories.ErrorStatisticRepository;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
+import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
@@ -20,6 +23,7 @@ import edu.prog3.mssecurity.Services.JwtService;
 import edu.prog3.mssecurity.Services.ValidatorsService;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
@@ -66,7 +70,10 @@ public class SecurityController {
                     "{'to': '" + theUser.getEmail() +
                     "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
                 );
-                new HttpService(urlNotification, body).consumePostService();
+                // FIXME - Catch properly
+                try {
+                    new HttpService(urlNotification, body).consumePostService();
+                } catch(Exception e) {}
     
                 message = session.get_id();
             } else {
@@ -96,7 +103,7 @@ public class SecurityController {
 
     @PostMapping("2FA")
     public String twoFactorAuth(@RequestBody Session session, final HttpServletResponse response)throws IOException{
-        Session theCurrentSession = this.theSessionRepository.getById(session.get_id());
+        Session theCurrentSession = this.theSessionRepository.findBy_id(new ObjectId(session.get_id()));
         String token = "";
 
         if(theCurrentSession != null) {
@@ -108,6 +115,8 @@ public class SecurityController {
                     theCurrentSession.getUser().getEmail()
                 );
                 token = this.theJwtService.generateToken(theCurrentUser);
+                theCurrentSession.setUse(true);
+                theCurrentSession.setToken(token);
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
                     .getErrorStatisticByUser(theCurrentSession.getUser().get_id());
