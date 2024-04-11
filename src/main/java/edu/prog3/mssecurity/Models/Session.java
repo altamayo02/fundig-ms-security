@@ -14,6 +14,8 @@ public class Session {
     @Id
     private String _id;
     private int code;
+    private boolean use = false;
+    private String token;
     @DBRef
     private User user;
 

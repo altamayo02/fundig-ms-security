@@ -1,7 +1,9 @@
 package edu.prog3.mssecurity.Controllers;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Models.Permission;
 import edu.prog3.mssecurity.Models.Session;
+import edu.prog3.mssecurity.Models.Statistic;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
+import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
@@ -18,6 +22,7 @@ import edu.prog3.mssecurity.Services.JwtService;
 import edu.prog3.mssecurity.Services.ValidatorsService;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -38,6 +43,8 @@ public class SecurityController {
     private ValidatorsService theValidatorsService;
     @Autowired
     private SessionRepository theSessionRepository;
+    @Autowired
+    private StatisticRepository theStatisticRepository;
 
 	
     @PostMapping("login")
@@ -59,15 +66,19 @@ public class SecurityController {
             Session session = new Session(code, theCurrentUser);
             this.theSessionRepository.save(session);
 
-            String urlNotification="127.0.0.1:5000/send_email";
-            String body = (
-                "{'to': '" + theUser.getEmail() +
-                "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
-            );
+            String urlNotification = "http://127.0.0.1:5000/send_email";
+            String body="{\"to\": \""+theUser.getEmail()+"\", \"template\": \"TWOFACTOR\", \"pin\": "+code+", \"subject\": \"Init code\"}";
+            System.out.println(theCurrentUser.getName()+"---------------------------------------------------------------");
             new HttpService(urlNotification, body).consumePostService();
 
             message = session.get_id();
         } else {
+
+            if(theCurrentUser != null){
+
+                theStatisticRepository.findByUser(theCurrentUser.get_id()).setErrorAuthentication();
+            }
+
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 			// TODO - Instance ghost Session (If user exists)
         }
@@ -76,15 +87,16 @@ public class SecurityController {
 
     @PostMapping("2FA")
     public String twoFactorAuth(@RequestBody Session session, final HttpServletResponse response)throws IOException{
-        Session theCurrentSession = this.theSessionRepository.getById(session.get_id());
+        Session theCurrentSession = this.theSessionRepository.findBy_id(new ObjectId(session.get_id()));
         String token = "";
 
-        if(theCurrentSession != null &&
-        theCurrentSession.getCode()==session.getCode() &&
-        theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
+        if(theCurrentSession.getCode()==session.getCode() &&
+        !theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
 
             User theCurrentUser = this.theUserRepository.getUserByEmail(theCurrentSession.getUser().getEmail());
             token = this.theJwtService.generateToken(theCurrentUser);
+            theCurrentSession.setUse(true);
+            theCurrentSession.setToken(token);
 
         }else{
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
