@@ -6,6 +6,7 @@ import edu.prog3.mssecurity.Models.RolePermission;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Repositories.PermissionRepository;
 import edu.prog3.mssecurity.Repositories.RolePermissionRepository;
+import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class ValidatorsService {
     private UserRepository theUserRepository;
     @Autowired
     private RolePermissionRepository theRolePermissionRepository;
+    @Autowired
+    private StatisticRepository theStatisticRepository;
+
     private static final String BEARER_PREFIX = "Bearer ";
 
 
@@ -45,8 +49,8 @@ public class ValidatorsService {
 					theRole.get_id(),
 					thePermission.get_id()
 				);
-                if (theRolePermission != null) success = true;
-            } else success = false;
+                if (theRolePermission != null){success=true;}else{theStatisticRepository.findByUser(this.getUser(request).get_id()).setErrorValidation();}
+            } else{theStatisticRepository.findByUser(this.getUser(request).get_id()).setErrorValidation();}
         }
         return success;
     }
