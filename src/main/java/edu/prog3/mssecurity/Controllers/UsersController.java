@@ -1,8 +1,10 @@
 package edu.prog3.mssecurity.Controllers;
 
 import edu.prog3.mssecurity.Models.Role;
+import edu.prog3.mssecurity.Models.Statistic;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Repositories.RoleRepository;
+import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 
@@ -22,6 +24,8 @@ public class UsersController {
     private RoleRepository theRoleRepository;
     @Autowired
     private EncryptionService theEncryptionService;
+    @Autowired
+    private StatisticRepository theStatisticRepository;
 
 	
     @GetMapping
@@ -41,7 +45,14 @@ public class UsersController {
     @PostMapping
     public User create(@RequestBody User theNewUser) {
         theNewUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
-        return this.theUserRepository.save(theNewUser);
+        User user= this.theUserRepository.save(theNewUser);
+
+        Statistic statistic = new Statistic();
+        this.theStatisticRepository.save(statistic);
+
+        statistic.setUser(user);
+
+        return user;
     }
 
     @PutMapping("{id}")

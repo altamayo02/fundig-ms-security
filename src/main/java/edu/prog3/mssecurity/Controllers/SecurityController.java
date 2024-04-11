@@ -3,6 +3,7 @@ package edu.prog3.mssecurity.Controllers;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,7 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Models.Session;
+import edu.prog3.mssecurity.Models.Statistic;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
+import edu.prog3.mssecurity.Repositories.StatisticRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
@@ -34,6 +37,8 @@ public class SecurityController {
     private JwtService theJwtService;
     @Autowired
     private SessionRepository theSessionRepository;
+    @Autowired
+    private StatisticRepository theStatisticRepository;
 
 	
     @PostMapping("login")
@@ -41,8 +46,7 @@ public class SecurityController {
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         String message="";
 
-        if (
-            theCurrentUser != null &&
+        if (theCurrentUser != null &&
             theCurrentUser.getPassword().equals(this.theEncryptionService.convertSHA256(theUser.getPassword()))
         ) {
 			// TODO - Instance Session (If user exists)
@@ -57,6 +61,12 @@ public class SecurityController {
 
             message = session.get_id();
         } else {
+
+            if(theCurrentUser != null){
+
+                theStatisticRepository.findByUser(theCurrentUser.get_id()).setErrorAuthentication();
+            }
+
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 			// TODO - Instance ghost Session (If user exists)
         }
@@ -71,15 +81,26 @@ public class SecurityController {
         if(theCurrentSession.getCode()==session.getCode() &&
         !theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
 
-            System.out.println("jsjsjsjs--------------------------------------------------------1");
             User theCurrentUser = this.theUserRepository.getUserByEmail(theCurrentSession.getUser().getEmail());
-            System.out.println("2---------------------------------------------------------------");
             token = this.theJwtService.generateToken(theCurrentUser);
+            theCurrentSession.setUse(true);
+            theCurrentSession.setToken(token);
 
         }else{
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
         return token;
     }
+
+    @GetMapping("maxErrorAuthentication")
+    public String maxErrorA(){
+        Statistic AuthenticationMax= this.theStatisticRepository.findTopByOrderBynumberErrorAuthentication();
+        return AuthenticationMax.getUser().get_id();
+    }
     
+    @GetMapping("maxErrorValidation")
+    public String maxErrorV(){
+        Statistic max = this.theStatisticRepository.findTopByOrderBynumberErrorvalidations();
+        return max.getUser().get_id();
+    }
 }
