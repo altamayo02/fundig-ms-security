@@ -1,5 +1,8 @@
 package edu.prog3.mssecurity.Services;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -7,13 +10,13 @@ import org.springframework.web.client.RestTemplate;
 
 public class HttpService {
     
-    private final String URL;
+    private final URI URL;
     private String body;
     private RestTemplate restTemplate;
     HttpHeaders headers = new HttpHeaders();
 
-    public HttpService(String url, String body) {
-        this.URL=url;
+    public HttpService(String url, String body) throws URISyntaxException {
+        this.URL = new URI(url);
         this.body=body;
         this.headers.setContentType(MediaType.APPLICATION_JSON);
 

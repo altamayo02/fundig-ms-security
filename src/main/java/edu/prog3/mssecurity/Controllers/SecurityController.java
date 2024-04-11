@@ -1,5 +1,6 @@
 package edu.prog3.mssecurity.Controllers;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import edu.prog3.mssecurity.Services.EncryptionService;
 import edu.prog3.mssecurity.Services.HttpService;
 import edu.prog3.mssecurity.Services.JwtService;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -35,7 +37,7 @@ public class SecurityController {
 
 	
     @PostMapping("login")
-    public String login(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
+    public String login(@RequestBody User theUser, final HttpServletResponse response) throws IOException, URISyntaxException {
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         String message="";
 
@@ -48,8 +50,9 @@ public class SecurityController {
             Session session = new Session(code, theCurrentUser);
             this.theSessionRepository.save(session);
 
-            String urlNotification="localhost:5000/send_email";
-            String body="{\"to\": \""+theUser.getEmail()+"\", \"template\": \"TWOFACTOR\", \"pin\": "+code;
+            String urlNotification = "http://127.0.0.1:5000/send_email";
+            String body="{\"to\": \""+theUser.getEmail()+"\", \"template\": \"TWOFACTOR\", \"pin\": "+code+", \"subject\": \"Init code\"}";
+            System.out.println(theCurrentUser.getName()+"---------------------------------------------------------------");
             new HttpService(urlNotification, body).consumePostService();
 
             message = session.get_id();
@@ -62,14 +65,15 @@ public class SecurityController {
 
     @PostMapping("2FA")
     public String twoFactorAuth(@RequestBody Session session, final HttpServletResponse response)throws IOException{
-        Session theCurrentSession = this.theSessionRepository.getById(session.get_id());
+        Session theCurrentSession = this.theSessionRepository.findBy_id(new ObjectId(session.get_id()));
         String token = "";
 
-        if(theCurrentSession != null &&
-        theCurrentSession.getCode()==session.getCode() &&
-        theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
+        if(theCurrentSession.getCode()==session.getCode() &&
+        !theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
 
+            System.out.println("jsjsjsjs--------------------------------------------------------1");
             User theCurrentUser = this.theUserRepository.getUserByEmail(theCurrentSession.getUser().getEmail());
+            System.out.println("2---------------------------------------------------------------");
             token = this.theJwtService.generateToken(theCurrentUser);
 
         }else{
@@ -77,4 +81,5 @@ public class SecurityController {
         }
         return token;
     }
+    
 }
