@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Models.Permission;
 import edu.prog3.mssecurity.Models.Session;
+import edu.prog3.mssecurity.Models.ErrorStatistic;
+import edu.prog3.mssecurity.Repositories.ErrorStatisticRepository;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import edu.prog3.mssecurity.Services.EncryptionService;
@@ -19,6 +21,7 @@ import edu.prog3.mssecurity.Services.ValidatorsService;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +41,8 @@ public class SecurityController {
     private ValidatorsService theValidatorsService;
     @Autowired
     private SessionRepository theSessionRepository;
+    @Autowired
+    private ErrorStatisticRepository theErrorStatisticRepository;
 
 	
     @PostMapping("login")
@@ -48,25 +53,40 @@ public class SecurityController {
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         String message = "";
 
-        if (
-            theCurrentUser != null &&
-            theCurrentUser.getPassword().equals(
+        if (theCurrentUser != null) {
+            if (theCurrentUser.getPassword().equals(
                 this.theEncryptionService.convertSHA256(theUser.getPassword())
-            )
-        ) {
-			// TODO - Instance Session (If user exists)
-            int code = new Random().nextInt(900000) + 100000;
-            Session session = new Session(code, theCurrentUser);
-            this.theSessionRepository.save(session);
+            )) {
+                int code = new Random().nextInt(900000) + 100000;
+                Session session = new Session(code, theCurrentUser);
+                this.theSessionRepository.save(session);
+    
+                String urlNotification="127.0.0.1:5000/send_email";
+                String body = (
+                    "{'to': '" + theUser.getEmail() +
+                    "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
+                );
+                new HttpService(urlNotification, body).consumePostService();
+    
+                message = session.get_id();
+            } else {
+                // TODO - Instance ghost Session (If user exists)
+                
+                ErrorStatistic theErrorStatistic = theErrorStatisticRepository
+                    .getErrorStatisticByUser(theCurrentUser.get_id());
+                
+                if (theErrorStatistic != null) {
+                    theErrorStatistic.setNumAuthErrors(
+                        theErrorStatistic.getNumAuthErrors() + 1
+                    );
 
-            String urlNotification="127.0.0.1:5000/send_email";
-            String body = (
-                "{'to': '" + theUser.getEmail() +
-                "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
-            );
-            new HttpService(urlNotification, body).consumePostService();
+                } else theErrorStatistic = new ErrorStatistic(
+                    0, 1, theCurrentUser
+                );
+                this.theErrorStatisticRepository.save(theErrorStatistic);
 
-            message = session.get_id();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 			// TODO - Instance ghost Session (If user exists)
@@ -79,17 +99,46 @@ public class SecurityController {
         Session theCurrentSession = this.theSessionRepository.getById(session.get_id());
         String token = "";
 
-        if(theCurrentSession != null &&
-        theCurrentSession.getCode()==session.getCode() &&
-        theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())){
+        if(theCurrentSession != null) {
+            if (
+                theCurrentSession.getCode() == session.getCode() &&
+                theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())
+            ) {
+                User theCurrentUser = this.theUserRepository.getUserByEmail(
+                    theCurrentSession.getUser().getEmail()
+                );
+                token = this.theJwtService.generateToken(theCurrentUser);
+            } else {
+                ErrorStatistic theErrorStatistic = theErrorStatisticRepository
+                    .getErrorStatisticByUser(theCurrentSession.getUser().get_id());
+                
+                if (theErrorStatistic != null) {
+                    theErrorStatistic.setNumAuthErrors(
+                        theErrorStatistic.getNumAuthErrors() + 1
+                    );
 
-            User theCurrentUser = this.theUserRepository.getUserByEmail(theCurrentSession.getUser().getEmail());
-            token = this.theJwtService.generateToken(theCurrentUser);
+                } else theErrorStatistic = new ErrorStatistic(
+                    0, 1, theCurrentSession.getUser()
+                );
+                this.theErrorStatisticRepository.save(theErrorStatistic);
 
-        }else{
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+        } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
         return token;
+    }
+
+    public ErrorStatistic highestSecurityErrors() {
+        List<ErrorStatistic> theErrorStatistics = this.theErrorStatisticRepository.findAll();
+        ErrorStatistic highest = new ErrorStatistic();
+        for (ErrorStatistic es : theErrorStatistics) {
+            if (es.getNumSecurityErrors() > highest.getNumSecurityErrors()) {
+                highest = es;
+            }
+        }
+        return highest;
     }
 
     public boolean permissionsValidation(

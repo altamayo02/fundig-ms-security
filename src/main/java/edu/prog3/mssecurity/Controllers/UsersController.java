@@ -1,5 +1,6 @@
 package edu.prog3.mssecurity.Controllers;
 
+import edu.prog3.mssecurity.Models.ErrorStatistic;
 import edu.prog3.mssecurity.Models.Role;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Repositories.RoleRepository;
@@ -22,6 +23,8 @@ public class UsersController {
     private RoleRepository theRoleRepository;
     @Autowired
     private EncryptionService theEncryptionService;
+    @Autowired
+    private SecurityController theSecurityController;
 
 	
     @GetMapping
@@ -35,6 +38,12 @@ public class UsersController {
                 .findById(id)
                 .orElse(null);
         return theUser;
+    }
+
+    @GetMapping("most-errors")
+    public User findByMostErrors(@PathVariable String id) {
+        ErrorStatistic theErrorStatistic = this.theSecurityController.highestSecurityErrors();
+        return theErrorStatistic.getUser();
     }
 
     @ResponseStatus(HttpStatus.CREATED)

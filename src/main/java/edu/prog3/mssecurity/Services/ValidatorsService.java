@@ -1,9 +1,11 @@
 package edu.prog3.mssecurity.Services;
 
+import edu.prog3.mssecurity.Models.ErrorStatistic;
 import edu.prog3.mssecurity.Models.Permission;
 import edu.prog3.mssecurity.Models.Role;
 import edu.prog3.mssecurity.Models.RolePermission;
 import edu.prog3.mssecurity.Models.User;
+import edu.prog3.mssecurity.Repositories.ErrorStatisticRepository;
 import edu.prog3.mssecurity.Repositories.PermissionRepository;
 import edu.prog3.mssecurity.Repositories.RolePermissionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
@@ -21,6 +23,8 @@ public class ValidatorsService {
     private UserRepository theUserRepository;
     @Autowired
     private RolePermissionRepository theRolePermissionRepository;
+    @Autowired
+    private ErrorStatisticRepository theErrorStatisticRepository;
     private static final String BEARER_PREFIX = "Bearer ";
 
 
@@ -46,6 +50,19 @@ public class ValidatorsService {
 					thePermission.get_id()
 				);
                 if (theRolePermission != null) success = true;
+                else {
+                    ErrorStatistic theErrorStatistic = theErrorStatisticRepository
+                        .getErrorStatisticByUser(theUser.get_id());
+                    
+                    if (theErrorStatistic != null) {
+                        theErrorStatistic.setNumValidationErrors(
+                            theErrorStatistic.getNumValidationErrors() + 1
+                        );
+                    } else theErrorStatistic = new ErrorStatistic(
+                        1, 0, theUser
+                    );
+                    this.theErrorStatisticRepository.save(theErrorStatistic);
+                }
             } else success = false;
         }
         return success;
