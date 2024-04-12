@@ -110,6 +110,9 @@ public class SecurityController {
         if (theCurrentUser != null) {
             int resetCode = new Random().nextInt(900000) + 100000;
 
+            Session session = new Session(resetCode, theCurrentUser);
+            this.theSessionRepository.save(session);
+
             JSONObject body = new JSONObject();
             body.put("to", theUser.getEmail());
             body.put("template", "RESTORE");
