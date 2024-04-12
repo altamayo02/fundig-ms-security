@@ -63,7 +63,7 @@ public class SecurityController {
                 this.theEncryptionService.convertSHA256(theUser.getPassword())
             )) {
                 int code = new Random().nextInt(900000) + 100000;
-                Session session = new Session(code, theCurrentUser);
+                Session session = new Session(""+code, theCurrentUser);
                 this.theSessionRepository.save(session);
     
                 String urlNotification="https://127.0.0.1:5000/send_email";
@@ -108,7 +108,7 @@ public class SecurityController {
         String message="";
 
         if (theCurrentUser != null) {
-            int resetCode = new Random().nextInt(900000) + 100000;
+            String resetCode = generarRandom(6);    
 
             Session session = new Session(resetCode, theCurrentUser);
             this.theSessionRepository.save(session);
@@ -121,7 +121,7 @@ public class SecurityController {
 
 
             String urlNotification = "http://127.0.0.1:5000/send_email";
-            HttpService httpService  = new HttpService(urlNotification, body.toJSONString());
+            HttpService httpService  = new HttpService(urlNotification, body.toString());
 
             try{
                 httpService.consumePostService();
@@ -197,5 +197,17 @@ public class SecurityController {
             thePermission.getMethod()
         );
         return success;
+    }
+
+
+    //crear token aleatorio
+    private String generarRandom (int length) {
+        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder cadena = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int index = (int) (caracteres.length() * Math.random());
+            cadena.append(caracteres.charAt(index));
+        }
+        return cadena.toString();
     }
 }

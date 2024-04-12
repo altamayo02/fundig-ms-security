@@ -13,7 +13,7 @@ import lombok.Data;
 public class Session {
     @Id
     private String _id;
-    private int code;
+    private String code;
     private boolean use = false;
     private String token;
     @DBRef
@@ -22,7 +22,7 @@ public class Session {
     private LocalDateTime createDateTime;
     private LocalDateTime expirationDateTime;
 
-    public Session(int code, User user){
+    public Session(String code, User user){
         this.code=code;
         this.user=user;
 
