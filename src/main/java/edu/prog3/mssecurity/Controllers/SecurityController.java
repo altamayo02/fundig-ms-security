@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.fastjson.JSONObject;
+
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Models.Permission;
 import edu.prog3.mssecurity.Models.Session;
@@ -98,6 +100,39 @@ public class SecurityController {
 			// TODO - Instance ghost Session (If user exists)
         }
         return message;
+    }
+
+    @PostMapping("restablecer")
+    public String restablecer(@RequestBody User theUser, final HttpServletResponse response) throws IOException, URISyntaxException {
+        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+        String message="";
+
+        if (theCurrentUser != null) {
+            int resetCode = new Random().nextInt(900000) + 100000;
+
+            JSONObject body = new JSONObject();
+            body.put("to", theUser.getEmail());
+            body.put("template", "RESTORE");
+            body.put("pin", resetCode);
+            body.put("subject", "Restablecer contraseña");
+
+
+            String urlNotification = "http://127.0.0.1:5000/send_email";
+            HttpService httpService  = new HttpService(urlNotification, body.toJSONString());
+
+            try{
+                httpService.consumePostService();
+                message = "Se ha enviado un correo con el código de restablecimiento.";
+            } catch (Exception e) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no se puede enviar el correo de restablcimiento de contraseña");
+                e.printStackTrace();
+                return null;
+            }
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "El usuario no existe");
+            return null;
+        }
+        return message; 
     }
 
     @PostMapping("2FA")
