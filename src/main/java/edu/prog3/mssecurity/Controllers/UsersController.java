@@ -55,14 +55,14 @@ public class UsersController {
 
     @PutMapping("{id}")
     public User update(@PathVariable String id, @RequestBody User theNewUser) {
-        User theActualUser = this.theUserRepository
+        User theCurrentUser = this.theUserRepository
                 .findById(id)
                 .orElse(null);
-        if (theActualUser != null) {
-            theActualUser.setName(theNewUser.getName());
-            theActualUser.setEmail(theNewUser.getEmail());
-            theActualUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
-            return this.theUserRepository.save(theActualUser);
+        if (theCurrentUser != null) {
+            theCurrentUser.setName(theNewUser.getName());
+            theCurrentUser.setEmail(theNewUser.getEmail());
+            theCurrentUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
+            return this.theUserRepository.save(theCurrentUser);
         } else return null;
     }
 
@@ -71,12 +71,12 @@ public class UsersController {
         User theCurrentUser = this.theUserRepository
                 .findById(userId)
                 .orElse(null);
-        Role theActualRole = this.theRoleRepository
+        Role theCurrentRole = this.theRoleRepository
                 .findById(roleId)
                 .orElse(null);
 
-        if (theCurrentUser != null && theActualRole != null) {
-            theCurrentUser.setRole(theActualRole);
+        if (theCurrentUser != null && theCurrentRole != null) {
+            theCurrentUser.setRole(theCurrentRole);
             return this.theUserRepository.save(theCurrentUser);
         } else return null;
     }

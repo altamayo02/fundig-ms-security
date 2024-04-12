@@ -17,11 +17,11 @@ import java.util.Map;
 public class JwtService {
     @Value("${jwt.secret}")
     private String secret; // Esta es la clave secreta que se utiliza para firmar el token. Debe mantenerse segura.
-
     @Value("${jwt.expiration}")
     private Long expiration; // Tiempo de expiración del token en milisegundos.
     private Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
 
+	
     public String generateToken(User theUser) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
@@ -39,6 +39,7 @@ public class JwtService {
                 .signWith(secretKey)
                 .compact();
     }
+
     public boolean validateToken(String token) {
         try {
             Jws<Claims> claimsJws = Jwts.parserBuilder()
@@ -61,6 +62,7 @@ public class JwtService {
             return false;
         }
     }
+
     public User getUserFromToken(String token) {
         try {
             Jws<Claims> claimsJws = Jwts.parserBuilder()
