@@ -37,14 +37,14 @@ public class RolesController {
 
     @PutMapping("{id}")
     public Role update(@PathVariable String id, @RequestBody Role theNewRole) {
-        Role theActualRole = this.theRoleRepository
+        Role theCurrentRole = this.theRoleRepository
                 .findById(id)
                 .orElse(null);
-        if (theActualRole != null) {
-            theActualRole.setName(theNewRole.getName());
-            theActualRole.setDescription(theNewRole.getDescription());
+        if (theCurrentRole != null) {
+            theCurrentRole.setName(theNewRole.getName());
+            theCurrentRole.setDescription(theNewRole.getDescription());
 
-            return this.theRoleRepository.save(theActualRole);
+            return this.theRoleRepository.save(theCurrentRole);
         } else return null;
     }
 
