@@ -65,10 +65,10 @@ public class SecurityController {
                 Session session = new Session(""+code, theCurrentUser);
                 this.theSessionRepository.save(session);
     
-                String urlNotification="https://127.0.0.1:5000/send_email";
+                String urlNotification="http://127.0.0.1:5000/send_email";
                 String body = (
-                    "{'to': '" + theUser.getEmail() +
-                    "', 'template': 'TWOFACTOR', 'pin': " + code + "}"
+                    "{\"to\": \"" + theUser.getEmail() +
+                    "\", \"template\": \"TWOFACTOR\", \"pin\": " + code + ", \"subject\": \"noneImportant\"}"
                 );
                 // FIXME - Catch properly
                 try {
@@ -144,8 +144,8 @@ public class SecurityController {
 
         if(theCurrentSession != null) {
             if (
-                theCurrentSession.getCode() == session.getCode() &&
-                theCurrentSession.getExpirationDateTime().isBefore(LocalDateTime.now())
+                theCurrentSession.getCode().equals(session.getCode()) &&
+                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now())
             ) {
                 User theCurrentUser = this.theUserRepository.getUserByEmail(
                     theCurrentSession.getUser().getEmail()
@@ -170,7 +170,7 @@ public class SecurityController {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            response.sendError(HttpServletResponse.SC_BAD_GATEWAY);
         }
         return token;
     }
