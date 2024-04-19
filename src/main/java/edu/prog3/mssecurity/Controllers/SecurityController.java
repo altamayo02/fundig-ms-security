@@ -116,7 +116,6 @@ public class SecurityController {
             json.put("to", theUser.getEmail());
             json.put("template", "PWRESET");
             json.put("pin", resetCode);
-            json.put("subject", "Restablecer contraseña");
 
             String urlNotification = "http://127.0.0.1:5000/send_email";
             HttpService httpService  = new HttpService(urlNotification, json.toString());
