@@ -28,7 +28,7 @@ public class ValidatorsService {
     private static final String BEARER_PREFIX = "Bearer ";
 
 
-    public boolean validationRolePermission(
+    public boolean validateRolePermission(
 		HttpServletRequest request,
 		String url,
 		String method
@@ -37,33 +37,36 @@ public class ValidatorsService {
         User theUser = this.getUser(request);
         if (theUser != null) {
             Role theRole = theUser.getRole();
-            System.out.println("Antes URL " + url + " metodo " + method);
-
+			
+            //System.out.println("URL antes de la expreg: " + url + " - método " + method);
             url = url.replaceAll("[0-9a-fA-F]{24}|\\d+", "?");
-            System.out.println("URL " + url + " metodo " + method);
+            //System.out.println("URL después de la expreg: " + url + " - método " + method);
 
             Permission thePermission = this.thePermissionRepository.getPermission(url,method);
             if(theRole != null && thePermission != null) {
-                System.out.println("Rol " + theRole.getName() + " Permission " + thePermission.getUrl());
+                //System.out.println("Rol " + theRole.getName() + " Permission " + thePermission.getUrl());
                 RolePermission theRolePermission = this.theRolePermissionRepository.getRolePermission(
 					theRole.get_id(),
 					thePermission.get_id()
 				);
-                if (theRolePermission != null) success = true;
-                else {
+                if (theRolePermission != null) {
+					success = true;
+				} else {
                     ErrorStatistic theErrorStatistic = theErrorStatisticRepository
-                        .getErrorStatisticByUser(theUser.get_id());
+                        	.getErrorStatisticByUser(theUser.get_id());
                     
                     if (theErrorStatistic != null) {
                         theErrorStatistic.setNumValidationErrors(
                             theErrorStatistic.getNumValidationErrors() + 1
                         );
-                    } else theErrorStatistic = new ErrorStatistic(
-                        1, 0, theUser
-                    );
+                    } else {
+						theErrorStatistic = new ErrorStatistic(1, 0, theUser);
+					}
                     this.theErrorStatisticRepository.save(theErrorStatistic);
                 }
-            } else success = false;
+            } else {
+				success = false;
+			}
         }
         return success;
     }
@@ -71,11 +74,11 @@ public class ValidatorsService {
     public User getUser(final HttpServletRequest request) {
         User theUser = null;
         String authorizationHeader = request.getHeader("Authorization");
-        System.out.println("Header " + authorizationHeader);
+        //System.out.println("Header " + authorizationHeader);
 
         if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
             String token = authorizationHeader.substring(BEARER_PREFIX.length());
-            System.out.println("Bearer Token: " + token);
+            //System.out.println("Bearer Token: " + token);
 
             User theUserFromToken = jwtService.getUserFromToken(token);
             if(theUserFromToken != null) {
