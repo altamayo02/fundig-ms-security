@@ -9,7 +9,7 @@ import java.net.http.HttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 
-// UNUSED
+// UNUSED. USE HttpService
 @Service
 public class SpringlessHttpService {
     @PostMapping

@@ -36,6 +36,8 @@ public class PermissionsController {
         return this.thePermissionRepository.save(theNewPermission);
     }
 
+	// No @PutMapping since updating is the same as creating
+
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("{id}")
     public void delete(@PathVariable String id) {

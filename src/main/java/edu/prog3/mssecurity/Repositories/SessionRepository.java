@@ -8,5 +8,6 @@ import edu.prog3.mssecurity.Models.Session;
 
 @Repository
 public interface SessionRepository extends MongoRepository<Session, ObjectId> {
+	// TODO - Figure out whether this is a better way to make queries
     Session findBy_id(ObjectId _id);
 }

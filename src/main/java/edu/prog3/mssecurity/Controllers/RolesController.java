@@ -17,7 +17,7 @@ public class RolesController {
 
     
     @GetMapping
-    public List<Role> findAll(){
+    public List<Role> findAll() {
         return this.theRoleRepository.findAll();
     }
     
@@ -58,6 +58,4 @@ public class RolesController {
             this.theRoleRepository.delete(theRole);
         }
     }
-
-
 }

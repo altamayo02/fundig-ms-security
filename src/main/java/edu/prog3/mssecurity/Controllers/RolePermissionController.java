@@ -52,9 +52,10 @@ public class RolePermissionController {
             newRolePermission.setRole(theRole);
             newRolePermission.setPermission(thePermission);
             return this.theRolePermissionRepository.save(newRolePermission);
-		// Why does it still return 201 here?
         } else return null;
     }
+
+	// No @PutMapping since updating is the same as creating
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("{id}")

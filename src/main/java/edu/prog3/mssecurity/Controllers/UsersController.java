@@ -91,8 +91,7 @@ public class UsersController {
                 .orElse(null);
 
         if (
-			theCurrentUser != null &&
-			theCurrentRole != null &&
+			theCurrentUser != null && theCurrentRole != null &&
 			theCurrentUser.getRole().get_id().equals(roleId)
 		) {
             theCurrentUser.setRole(null);

@@ -190,7 +190,7 @@ public class SecurityController {
         final HttpServletRequest request,
         @RequestBody Permission thePermission
     ) {
-        boolean success = this.theValidatorsService.validationRolePermission(
+        boolean success = this.theValidatorsService.validateRolePermission(
             request,
             thePermission.getUrl(),
             thePermission.getMethod()
