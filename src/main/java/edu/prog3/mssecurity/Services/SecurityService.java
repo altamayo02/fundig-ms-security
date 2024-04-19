@@ -6,8 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 @Service
-// Could be SecurityService
-public class EncryptionService {
+public class SecurityService {
     public String convertSHA256(String password) {
         MessageDigest md = null;
         try {
@@ -23,5 +22,15 @@ public class EncryptionService {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    public String getRandomAlphanumerical(int length) {
+        String alphanumerics = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int index = (int)(alphanumerics.length() * Math.random());
+            builder.append(alphanumerics.charAt(index));
+        }
+        return builder.toString();
     }
 }

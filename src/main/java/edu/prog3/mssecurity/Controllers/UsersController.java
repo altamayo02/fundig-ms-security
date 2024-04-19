@@ -5,7 +5,7 @@ import edu.prog3.mssecurity.Models.Role;
 import edu.prog3.mssecurity.Models.User;
 import edu.prog3.mssecurity.Repositories.RoleRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
-import edu.prog3.mssecurity.Services.EncryptionService;
+import edu.prog3.mssecurity.Services.SecurityService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ public class UsersController {
     @Autowired
     private RoleRepository theRoleRepository;
     @Autowired
-    private EncryptionService theEncryptionService;
+    private SecurityService theSecurityService;
     @Autowired
     private SecurityController theSecurityController;
 
@@ -42,14 +42,14 @@ public class UsersController {
 
     @GetMapping("most-errors")
     public User findByMostErrors(@PathVariable String id) {
-        ErrorStatistic theErrorStatistic = this.theSecurityController.highestSecurityErrors();
+        ErrorStatistic theErrorStatistic = this.theSecurityController.getHighestSecurityErrors();
         return theErrorStatistic.getUser();
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     public User create(@RequestBody User theNewUser) {
-        theNewUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
+        theNewUser.setPassword(theSecurityService.convertSHA256(theNewUser.getPassword()));
         return this.theUserRepository.save(theNewUser);
     }
 
@@ -61,7 +61,7 @@ public class UsersController {
         if (theCurrentUser != null) {
             theCurrentUser.setName(theNewUser.getName());
             theCurrentUser.setEmail(theNewUser.getEmail());
-            theCurrentUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
+            theCurrentUser.setPassword(theSecurityService.convertSHA256(theNewUser.getPassword()));
             return this.theUserRepository.save(theCurrentUser);
         } else return null;
     }

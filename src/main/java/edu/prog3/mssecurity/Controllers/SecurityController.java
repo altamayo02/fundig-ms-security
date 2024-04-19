@@ -17,7 +17,7 @@ import edu.prog3.mssecurity.Models.ErrorStatistic;
 import edu.prog3.mssecurity.Repositories.ErrorStatisticRepository;
 import edu.prog3.mssecurity.Repositories.SessionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
-import edu.prog3.mssecurity.Services.EncryptionService;
+import edu.prog3.mssecurity.Services.SecurityService;
 import edu.prog3.mssecurity.Services.HttpService;
 import edu.prog3.mssecurity.Services.JwtService;
 import edu.prog3.mssecurity.Services.ValidatorsService;
@@ -38,7 +38,7 @@ public class SecurityController {
     @Autowired
     private UserRepository theUserRepository;
     @Autowired
-    private EncryptionService theEncryptionService;
+    private SecurityService theSecurityService;
     @Autowired
     private JwtService theJwtService;
     @Autowired
@@ -59,10 +59,10 @@ public class SecurityController {
 
         if (theCurrentUser != null) {
             if (theCurrentUser.getPassword().equals(
-                this.theEncryptionService.convertSHA256(theUser.getPassword())
+                this.theSecurityService.convertSHA256(theUser.getPassword())
             )) {
-                int code = new Random().nextInt(900000) + 100000;
-                Session session = new Session(""+code, theCurrentUser);
+                int code = new Random().nextInt(1000000);
+                Session session = new Session(String.valueOf(code), theCurrentUser);
                 this.theSessionRepository.save(session);
     
                 String urlNotification="http://127.0.0.1:5000/send_email";
@@ -77,74 +77,78 @@ public class SecurityController {
     
                 message = session.get_id();
             } else {
-                // TODO - Instance ghost Session (If user exists)
-                
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
-                    .getErrorStatisticByUser(theCurrentUser.get_id());
+                    	.getErrorStatisticByUser(theCurrentUser.get_id());
                 
                 if (theErrorStatistic != null) {
                     theErrorStatistic.setNumAuthErrors(
                         theErrorStatistic.getNumAuthErrors() + 1
                     );
-
-                } else theErrorStatistic = new ErrorStatistic(
-                    0, 1, theCurrentUser
-                );
+                } else {
+					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentUser);
+				}
                 this.theErrorStatisticRepository.save(theErrorStatistic);
 
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-			// TODO - Instance ghost Session (If user exists)
         }
         return message;
     }
 
-    @PostMapping("restablecer")
-    public String restablecer(@RequestBody User theUser, final HttpServletResponse response) throws IOException, URISyntaxException {
+    @PostMapping("pw-reset")
+    public String passwordReset(
+		@RequestBody User theUser,
+		final HttpServletResponse response
+	) throws IOException, URISyntaxException {
+        String message = "Si el correo ingresado está asociado a una cuenta, " +
+			"pronto recibirá un mensaje para restablecer su contraseña.";
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-        String message="";
 
         if (theCurrentUser != null) {
-            String resetCode = generarRandom(6);    
+            String resetCode = theSecurityService.getRandomAlphanumerical(6);
 
-            Session session = new Session(resetCode, theCurrentUser);
-            this.theSessionRepository.save(session);
+            Session theSession = new Session(resetCode, theCurrentUser);
+            this.theSessionRepository.save(theSession);
 
-            JSONObject body = new JSONObject();
-            body.put("to", theUser.getEmail());
-            body.put("template", "RESTORE");
-            body.put("pin", resetCode);
-            body.put("subject", "Restablecer contraseña");
-
+            JSONObject json = new JSONObject();
+            json.put("to", theUser.getEmail());
+            json.put("template", "PWRESET");
+            json.put("pin", resetCode);
+            json.put("subject", "Restablecer contraseña");
 
             String urlNotification = "http://127.0.0.1:5000/send_email";
-            HttpService httpService  = new HttpService(urlNotification, body.toString());
+            HttpService httpService  = new HttpService(urlNotification, json.toString());
 
-            try{
+            try {
                 httpService.consumePostService();
-                message = "Se ha enviado un correo con el código de restablecimiento.";
             } catch (Exception e) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no se puede enviar el correo de restablcimiento de contraseña");
+                response.sendError(
+					HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+					"No se pudo enviar el correo de restablecimiento de contraseña. " +
+					"Intente de nuevo más tarde."
+				);
                 e.printStackTrace();
-                return null;
             }
-        } else {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "El usuario no existe");
-            return null;
         }
-        return message; 
+
+        return message;
     }
 
     @PostMapping("2FA")
-    public String twoFactorAuth(@RequestBody Session session, final HttpServletResponse response)throws IOException{
-        Session theCurrentSession = this.theSessionRepository.findBy_id(new ObjectId(session.get_id()));
+    public String twoFactorAuth(
+		@RequestBody Session theIncomingSession,
+		final HttpServletResponse response
+	) throws IOException {
+        Session theCurrentSession = this.theSessionRepository.findBy_id(
+			new ObjectId(theIncomingSession.get_id())
+		);
         String token = "";
 
-        if(theCurrentSession != null) {
+        if (theCurrentSession != null) {
             if (
-                theCurrentSession.getCode().equals(session.getCode()) &&
+                theCurrentSession.getCode().equals(theIncomingSession.getCode()) &&
                 theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now())
             ) {
                 User theCurrentUser = this.theUserRepository.getUserByEmail(
@@ -155,27 +159,27 @@ public class SecurityController {
                 theCurrentSession.setToken(token);
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
-                    .getErrorStatisticByUser(theCurrentSession.getUser().get_id());
+                    	.getErrorStatisticByUser(theCurrentSession.getUser().get_id());
                 
                 if (theErrorStatistic != null) {
                     theErrorStatistic.setNumAuthErrors(
                         theErrorStatistic.getNumAuthErrors() + 1
                     );
-
-                } else theErrorStatistic = new ErrorStatistic(
-                    0, 1, theCurrentSession.getUser()
-                );
+                } else {
+					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentSession.getUser());
+				}
                 this.theErrorStatisticRepository.save(theErrorStatistic);
 
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
-            response.sendError(HttpServletResponse.SC_BAD_GATEWAY);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
+
         return token;
     }
 
-    public ErrorStatistic highestSecurityErrors() {
+    public ErrorStatistic getHighestSecurityErrors() {
         List<ErrorStatistic> theErrorStatistics = this.theErrorStatisticRepository.findAll();
         ErrorStatistic highest = new ErrorStatistic();
         for (ErrorStatistic es : theErrorStatistics) {
@@ -186,7 +190,7 @@ public class SecurityController {
         return highest;
     }
 
-    public boolean permissionsValidation(
+    public boolean validatePermissions(
         final HttpServletRequest request,
         @RequestBody Permission thePermission
     ) {
@@ -196,17 +200,5 @@ public class SecurityController {
             thePermission.getMethod()
         );
         return success;
-    }
-
-
-    //crear token aleatorio
-    private String generarRandom (int length) {
-        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder cadena = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            int index = (int) (caracteres.length() * Math.random());
-            cadena.append(caracteres.charAt(index));
-        }
-        return cadena.toString();
     }
 }
