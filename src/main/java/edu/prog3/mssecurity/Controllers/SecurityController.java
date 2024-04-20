@@ -99,43 +99,6 @@ public class SecurityController {
         return message;
     }
 
-    @PostMapping("pw-reset")
-    public String passwordReset(
-		@RequestBody User theUser,
-		final HttpServletResponse response
-	) throws IOException, URISyntaxException {
-        String message = "Si el correo ingresado está asociado a una cuenta, " +
-			"pronto recibirá un mensaje para restablecer su contraseña.";
-        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-
-        if (theCurrentUser != null) {
-            String resetCode = theSecurityService.getRandomAlphanumerical(6);
-
-            Session theSession = new Session(resetCode, theCurrentUser);
-            this.theSessionRepository.save(theSession);
-
-            JSONObject json = new JSONObject();
-            json.put("to", theUser.getEmail());
-            json.put("template", "PWRESET");
-            json.put("pin", resetCode);
-
-            String urlNotification = "http://127.0.0.1:5000/send_email";
-            HttpService httpService  = new HttpService(urlNotification, json.toString());
-
-            try {
-                httpService.consumePostService();
-            } catch (Exception e) {
-                response.sendError(
-					HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-					"No se pudo enviar el correo de restablecimiento de contraseña. " +
-					"Intente de nuevo más tarde."
-				);
-                e.printStackTrace();
-            }
-        }
-
-        return message;
-    }
 
     @PostMapping("2FA")
     public String twoFactorAuth(
