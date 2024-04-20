@@ -3,31 +3,44 @@ package edu.prog3.mssecurity.Services;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+
+@Service
 public class HttpService {
     
-    private final URI URL;
-    private String body;
-    private RestTemplate restTemplate;
-    HttpHeaders headers = new HttpHeaders();
+    @Value("${url.notification}")
+    private String url;
 
-    public HttpService(String url, String body) throws URISyntaxException {
-        this.URL = new URI(url);
-        this.body=body;
-        this.headers.setContentType(MediaType.APPLICATION_JSON);
 
-        this.restTemplate = new RestTemplate();
-        
+    public String consumePostNotification(String ruta, JSONObject body) {
+
+        String answer="";
+
+        HttpHeaders headers= new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> httpEntity= new HttpEntity<>(body.toString(), headers);
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        URI url;
+        try {
+            url = new URI(this.url);
+            answer = restTemplate.postForObject(url+ruta,httpEntity, String.class);
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            answer=e.toString();
+            e.printStackTrace();
+        }
+
+        return answer;
     }
 
-    public void consumePostService() {
-        HttpEntity<String> httpEntity= new HttpEntity<>(this.body, this.headers);
-
-        String answer = restTemplate.postForObject(this.URL,httpEntity, String.class);
-        System.out.println("HttpService: " + answer);
-    }
 }

@@ -1,5 +1,6 @@
 package edu.prog3.mssecurity.Controllers;
 
+import org.bson.json.JsonObject;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -42,6 +43,8 @@ public class SecurityController {
     @Autowired
     private JwtService theJwtService;
     @Autowired
+    private HttpService theHttpService;
+    @Autowired
     private ValidatorsService theValidatorsService;
     @Autowired
     private SessionRepository theSessionRepository;
@@ -65,16 +68,15 @@ public class SecurityController {
                 Session session = new Session(String.valueOf(code), theCurrentUser);
                 this.theSessionRepository.save(session);
     
-                String urlNotification="http://127.0.0.1:5000/send_email";
-                String body = (
-                    "{\"to\": \"" + theUser.getEmail() +
-                    "\", \"template\": \"TWOFACTOR\", \"pin\": " + code + ", \"subject\": \"noneImportant\"}"
-                );
-                // FIXME - Catch properly
-                try {
-                    new HttpService(urlNotification, body).consumePostService();
-                } catch(Exception e) {}
-    
+                JSONObject body = new JSONObject();
+                body.put("to", theUser.getEmail());
+                body.put("template", "TWOFACTOR");
+                body.put("pin", code);
+                body.put("subject", "holi");
+
+                String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+                System.out.println(answer);
+                
                 message = session.get_id();
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
@@ -97,45 +99,6 @@ public class SecurityController {
         return message;
     }
 
-    @PostMapping("pw-reset")
-    public String passwordReset(
-		@RequestBody User theUser,
-		final HttpServletResponse response
-	) throws IOException, URISyntaxException {
-        String message = "Si el correo ingresado está asociado a una cuenta, " +
-			"pronto recibirá un mensaje para restablecer su contraseña.";
-        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-
-        if (theCurrentUser != null) {
-            String resetCode = theSecurityService.getRandomAlphanumerical(6);
-
-            Session theSession = new Session(resetCode, theCurrentUser);
-            this.theSessionRepository.save(theSession);
-
-            JSONObject json = new JSONObject();
-            json.put("to", theUser.getEmail());
-            json.put("template", "PWRESET");
-            json.put("pin", resetCode);
-            json.put("subject", "Restablecer contraseña");
-
-            String urlNotification = "http://127.0.0.1:5000/send_email";
-            HttpService httpService  = new HttpService(urlNotification, json.toString());
-
-            try {
-                httpService.consumePostService();
-            } catch (Exception e) {
-                response.sendError(
-					HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-					"No se pudo enviar el correo de restablecimiento de contraseña. " +
-					"Intente de nuevo más tarde."
-				);
-                e.printStackTrace();
-            }
-        }
-
-        return message;
-    }
-
     @PostMapping("2FA")
     public String twoFactorAuth(
 		@RequestBody Session theIncomingSession,
@@ -146,17 +109,19 @@ public class SecurityController {
 		);
         String token = "";
 
-        if (theCurrentSession != null) {
+        if(theCurrentSession != null) {
             if (
                 theCurrentSession.getCode().equals(theIncomingSession.getCode()) &&
-                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now())
+                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
+                !theCurrentSession.isUse()
             ) {
                 User theCurrentUser = this.theUserRepository.getUserByEmail(
                     theCurrentSession.getUser().getEmail()
                 );
+
                 token = this.theJwtService.generateToken(theCurrentUser);
                 theCurrentSession.setUse(true);
-                theCurrentSession.setToken(token);
+                this.theSessionRepository.save(theCurrentSession);
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
                     	.getErrorStatisticByUser(theCurrentSession.getUser().get_id());
@@ -178,6 +143,38 @@ public class SecurityController {
 
         return token;
     }
+
+
+    @PostMapping("pw-reset")
+    public String passwordReset(
+		@RequestBody User theUser,
+		final HttpServletResponse response
+	) throws IOException, URISyntaxException {
+        String message = "Si el correo ingresado está asociado a una cuenta, " +
+		"pronto recibirá un mensaje para restablecer su contraseña.";
+
+        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+
+        if (theCurrentUser != null) {
+            String code = this.theSecurityService.getRandomAlphanumerical(6);
+
+            Session theSession = new Session(code, theCurrentUser);
+            this.theSessionRepository.save(theSession);
+
+            JSONObject body = new JSONObject();
+            body.put("to", theUser.getEmail());
+            body.put("template", "PWRESET");
+            body.put("url", code);
+            body.put("subject", "nonad");
+
+            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+            System.out.println(answer);
+
+        }
+
+        return message;
+    }
+
 
     public ErrorStatistic getHighestSecurityErrors() {
         List<ErrorStatistic> theErrorStatistics = this.theErrorStatisticRepository.findAll();
