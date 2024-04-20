@@ -146,35 +146,6 @@ public class SecurityController {
     }
 
 
-    @PostMapping("pw-reset")
-    public String passwordReset(
-		@RequestBody User theUser,
-		final HttpServletResponse response
-	) throws IOException, URISyntaxException {
-        String message = "Si el correo ingresado está asociado a una cuenta, " +
-		"pronto recibirá un mensaje para restablecer su contraseña.";
-
-        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-
-        if (theCurrentUser != null) {
-            String code = this.theSecurityService.getRandomAlphanumerical(6);
-
-            Session theSession = new Session(code, theCurrentUser);
-            this.theSessionRepository.save(theSession);
-
-            JSONObject body = new JSONObject();
-            body.put("to", theUser.getEmail());
-            body.put("template", "PWRESET");
-            body.put("url", code);
-            body.put("subject", "nonad");
-
-            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
-            System.out.println(answer);
-
-        }
-
-        return message;
-    }
 
 
     public ErrorStatistic getHighestSecurityErrors() {
