@@ -1,6 +1,5 @@
 package edu.prog3.mssecurity.Controllers;
 
-import org.bson.json.JsonObject;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -187,6 +186,7 @@ public class SecurityController {
         return highest;
     }
 
+	@PostMapping("validate-permissions")
     public boolean validatePermissions(
         final HttpServletRequest request,
         @RequestBody Permission thePermission
