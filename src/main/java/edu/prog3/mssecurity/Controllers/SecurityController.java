@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import edu.prog3.mssecurity.Models.User;
@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -225,5 +226,84 @@ public class SecurityController {
 			new JSONObject().put("success", success).toString(), headers, HttpStatus.OK
 		);
         return response;
+    }
+
+	@PostMapping("validator")
+    public String validator(
+        @RequestBody Map<String, Object> body,
+        final HttpServletResponse response
+    ) throws IOException {
+        String message = "Rare type";
+        System.out.println(body.toString()+ "ssssssssssssssssss");
+        try {
+            if (!body.containsKey("type")) {
+                return "Invalid request: missing 'type' field";
+            }
+
+            String type = (String)body.get("type");
+
+            switch (type) {
+                case "two-factor":
+					// FIXME - Broken
+                    //message = this.twoFactorAuth(body, response);
+                    break;
+                case "reset-password":
+                    message = this.resetPassword(body, response);
+                    break;
+                default:
+                    return "Invalid request: unknown type '" + type + "'";
+            }
+        } catch (JSONException e) {
+            return "Invalid request: " + e.getMessage();
+        }
+
+        return message;
+    }
+
+    public String resetPassword(Map<String, Object> body, HttpServletResponse response) throws IOException{
+        Session theCurrentSession = this.theSessionRepository.findBy_id(
+			new ObjectId((String)body.get("id"))
+		);
+
+        String message = "";
+        System.out.println(theCurrentSession);
+
+        if(theCurrentSession != null) {
+            if (
+                theCurrentSession.getCode().equals((String)body.get("code")) &&
+                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
+                !theCurrentSession.isUsed()
+            ) {
+
+                User theCurrentUser = this.theUserRepository.getUserByEmail(
+                    theCurrentSession.getUser().getEmail()
+                );
+
+                theCurrentUser.setPassword(theSecurityService.convertSHA256((String)body.get("password")));
+                this.theUserRepository.save(theCurrentUser);
+
+                theCurrentSession.setUsed(true);
+                this.theSessionRepository.save(theCurrentSession);
+                message = "the password was update";
+            } else {
+                ErrorStatistic theErrorStatistic = theErrorStatisticRepository
+                    	.getErrorStatisticByUser(theCurrentSession.getUser().get_id());
+                
+                if (theErrorStatistic != null) {
+                    theErrorStatistic.setNumAuthErrors(
+                        theErrorStatistic.getNumAuthErrors() + 1
+                    );
+                } else {
+					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentSession.getUser());
+				}
+                this.theErrorStatisticRepository.save(theErrorStatistic);
+
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+        } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        }
+
+        return message;
     }
 }

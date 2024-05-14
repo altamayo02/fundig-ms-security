@@ -15,6 +15,7 @@ public class Session {
     private String _id;
     private String code;
     private boolean used;
+	private int expiresAfter = 1800;
     @DBRef
     private User user;
     private LocalDateTime createDateTime;
@@ -25,7 +26,7 @@ public class Session {
 		this.used = false;
         this.user = user;
         this.createDateTime = LocalDateTime.now();
-        this.expirationDateTime = LocalDateTime.now().plusMinutes(30);
+        this.expirationDateTime = LocalDateTime.now().plusSeconds(1800);
     }
 
 }
