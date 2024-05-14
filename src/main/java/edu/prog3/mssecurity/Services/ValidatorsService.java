@@ -11,6 +11,7 @@ import edu.prog3.mssecurity.Repositories.RolePermissionRepository;
 import edu.prog3.mssecurity.Repositories.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +26,8 @@ public class ValidatorsService {
     private RolePermissionRepository theRolePermissionRepository;
     @Autowired
     private ErrorStatisticRepository theErrorStatisticRepository;
+	@Value("${id.superuser}")
+	private String superuserId;
     private static final String BEARER_PREFIX = "Bearer ";
 
 
@@ -37,13 +40,17 @@ public class ValidatorsService {
         User theUser = this.getUser(request);
         if (theUser != null) {
             Role theRole = theUser.getRole();
+			if (theRole.get_id().equals(this.superuserId)) {
+				success = true;
+				return success;
+			}
 			
             //System.out.println("URL antes de la expreg: " + url + " - método " + method);
             url = url.replaceAll("[0-9a-fA-F]{24}|\\d+", "?");
             //System.out.println("URL después de la expreg: " + url + " - método " + method);
 
             Permission thePermission = this.thePermissionRepository.getPermission(url, method);
-            if(theRole != null && thePermission != null) {
+            if (theRole != null && thePermission != null) {
                 //System.out.println("Rol " + theRole.getName() + " Permission " + thePermission.getUrl());
                 RolePermission theRolePermission = this.theRolePermissionRepository.getRolePermission(
 					theRole.get_id(),

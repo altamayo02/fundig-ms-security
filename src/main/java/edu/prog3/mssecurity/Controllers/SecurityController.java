@@ -200,7 +200,7 @@ public class SecurityController {
     }
 
 	@PostMapping("validate-permissions")
-    public boolean validatePermissions(
+    public ResponseEntity<String> validatePermissions(
         final HttpServletRequest request,
         @RequestBody Permission thePermission
     ) {
@@ -209,6 +209,12 @@ public class SecurityController {
             thePermission.getUrl(),
             thePermission.getMethod()
         );
-        return success;
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		ResponseEntity<String> response = new ResponseEntity<>(
+			new JSONObject().put("success", success).toString(), headers, HttpStatus.OK
+		);
+        return response;
     }
 }
