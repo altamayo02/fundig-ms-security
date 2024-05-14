@@ -19,7 +19,7 @@ public class HttpService {
     private String url;
 
 
-    public String consumePostNotification(String ruta, JSONObject body) {
+    public String postNotification(String ruta, JSONObject body) {
 
         String answer="";
 
@@ -44,3 +44,4 @@ public class HttpService {
     }
 
 }
+

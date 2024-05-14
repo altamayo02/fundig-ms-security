@@ -1,10 +1,8 @@
 package edu.prog3.mssecurity.Controllers;
 
-import org.bson.json.JsonObject;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.Mapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,7 +75,7 @@ public class SecurityController {
                 body.put("pin", code);
                 body.put("subject", "holi");
 
-                String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+                String answer= this.theHttpService.postNotification("/send_email", body);
                 System.out.println(answer);
                 
                 message = session.get_id();
@@ -125,7 +123,7 @@ public class SecurityController {
             body.put("pin", code);
             body.put("subject", "nonad");
 
-            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+            String answer= this.theHttpService.postNotification ("/send_email", body);
             System.out.println(answer);
 
         }

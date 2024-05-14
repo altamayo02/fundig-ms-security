@@ -24,7 +24,6 @@ public class Session {
 
     @DBRef
     private User user;
-
     private LocalDateTime createDateTime;
     private LocalDateTime expirationDateTime;
 
