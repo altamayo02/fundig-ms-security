@@ -1,13 +1,15 @@
 package edu.prog3.mssecurity.Controllers;
 
+import org.bson.json.JsonObject;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.Mapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import edu.prog3.mssecurity.Models.User;
@@ -24,8 +26,10 @@ import edu.prog3.mssecurity.Services.ValidatorsService;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.PublicKey;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -98,20 +102,81 @@ public class SecurityController {
         return message;
     }
 
-
-    @PostMapping("2FA")
-    public String twoFactorAuth(
-		@RequestBody Session theIncomingSession,
+    
+    @PostMapping("pw-reset")
+    public String passwordReset(
+		@RequestBody User theUser,
 		final HttpServletResponse response
-	) throws IOException {
+	) throws IOException, URISyntaxException {
+        String message = "Si el correo ingresado está asociado a una cuenta, " +
+		"pronto recibirá un mensaje para restablecer su contraseña.";
+
+        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+
+        if (theCurrentUser != null) {
+            String code = this.theSecurityService.getRandomAlphanumerical(6);
+
+            Session theSession = new Session(code, theCurrentUser);
+            message += " el id de la sessión es"+ this.theSessionRepository.save(theSession).get_id();
+
+            JSONObject body = new JSONObject();
+            body.put("to", theUser.getEmail());
+            body.put("template", "TWOFACTOR");
+            body.put("pin", code);
+            body.put("subject", "nonad");
+
+            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+            System.out.println(answer);
+
+        }
+
+        return message;
+    }
+
+
+    @PostMapping("validator")
+    public String validator(
+        @RequestBody Map<String, Object> body,
+        final HttpServletResponse response
+    ) throws IOException {
+
+    String message = "Rare type";
+    System.out.println(body.toString()+ "ssssssssssssssssss");
+    try {
+        if (!body.containsKey("type")) {
+            return "Invalid request: missing 'type' field";
+        }
+
+        String type = (String)body.get("type");
+
+        switch (type) {
+            case "two-factor":
+                message = this.twoFactorAuth(body, response);
+                break;
+            case "reset-password":
+                message = this.resetPassword(body, response);
+                break;
+            default:
+                return "Invalid request: unknown type '" + type + "'";
+        }
+    } catch (JSONException e) {
+        return "Invalid request: " + e.getMessage();
+    }
+
+    return message;
+}
+
+
+    public String twoFactorAuth( Map<String, Object> body, final HttpServletResponse response) throws IOException{
+
         Session theCurrentSession = this.theSessionRepository.findBy_id(
-			new ObjectId(theIncomingSession.get_id())
+			new ObjectId((String)body.get("id"))
 		);
         String token = "";
 
         if(theCurrentSession != null) {
             if (
-                theCurrentSession.getCode().equals(theIncomingSession.getCode()) &&
+                theCurrentSession.getCode().equals((String)body.get("code")) &&
                 theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
                 !theCurrentSession.isUse()
             ) {
@@ -134,7 +199,7 @@ public class SecurityController {
 					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentSession.getUser());
 				}
                 this.theErrorStatisticRepository.save(theErrorStatistic);
-
+                System.out.println(theCurrentSession.toString());
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
@@ -144,35 +209,53 @@ public class SecurityController {
         return token;
     }
 
-    @PostMapping("pw-reset")
-    public String passwordReset(
-		@RequestBody User theUser,
-		final HttpServletResponse response
-	) throws IOException, URISyntaxException {
-        String message = "Si el correo ingresado está asociado a una cuenta, " +
-		"pronto recibirá un mensaje para restablecer su contraseña.";
+    public String resetPassword(Map<String, Object> body, HttpServletResponse response) throws IOException{
+        Session theCurrentSession = this.theSessionRepository.findBy_id(
+			new ObjectId((String)body.get("id"))
+		);
 
-        User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
+        String message = "";
+        System.out.println(theCurrentSession);
 
-        if (theCurrentUser != null) {
-            String code = this.theSecurityService.getRandomAlphanumerical(6);
+        if(theCurrentSession != null) {
+            if (
+                theCurrentSession.getCode().equals((String)body.get("code")) &&
+                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
+                !theCurrentSession.isUse()
+            ) {
 
-            Session theSession = new Session(code, theCurrentUser);
-            this.theSessionRepository.save(theSession);
+                User theCurrentUser = this.theUserRepository.getUserByEmail(
+                    theCurrentSession.getUser().getEmail()
+                );
 
-            JSONObject body = new JSONObject();
-            body.put("to", theUser.getEmail());
-            body.put("template", "PWRESET");
-            body.put("url", code);
-            body.put("subject", "nonad");
+                theCurrentUser.setPassword(theSecurityService.convertSHA256((String)body.get("password")));
+                this.theUserRepository.save(theCurrentUser);
 
-            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
-            System.out.println(answer);
+                theCurrentSession.setUse(true);
+                this.theSessionRepository.save(theCurrentSession);
+                message = "the password was update";
+            } else {
+                ErrorStatistic theErrorStatistic = theErrorStatisticRepository
+                    	.getErrorStatisticByUser(theCurrentSession.getUser().get_id());
+                
+                if (theErrorStatistic != null) {
+                    theErrorStatistic.setNumAuthErrors(
+                        theErrorStatistic.getNumAuthErrors() + 1
+                    );
+                } else {
+					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentSession.getUser());
+				}
+                this.theErrorStatisticRepository.save(theErrorStatistic);
 
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+        } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
 
         return message;
     }
+    
 
 
     public ErrorStatistic getHighestSecurityErrors() {
