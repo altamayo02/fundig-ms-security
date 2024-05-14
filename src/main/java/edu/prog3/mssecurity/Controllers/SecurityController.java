@@ -68,8 +68,8 @@ public class SecurityController {
                 this.theSecurityService.convertSHA256(theUser.getPassword())
             )) {
                 int code = new Random().nextInt(1000000);
-                Session session = new Session(String.valueOf(code), theCurrentUser);
-                this.theSessionRepository.save(session);
+                Session theSession = new Session(String.valueOf(code), theCurrentUser);
+                this.theSessionRepository.save(theSession);
     
                 JSONObject body = new JSONObject();
                 body.put("to", theUser.getEmail());
@@ -78,7 +78,7 @@ public class SecurityController {
 
                 ResponseEntity<String> notificationResponse = this.theHttpService.postNotification("/send_email", body);
                 JSONObject json = new JSONObject(
-					notificationResponse.getBody()).put("session_id", session.get_id()
+					notificationResponse.getBody()).put("session_id", theSession.get_id()
 				);
 				HttpHeaders headers = new HttpHeaders();
 				headers.setContentType(MediaType.APPLICATION_JSON);
@@ -159,12 +159,13 @@ public class SecurityController {
     }
 
     @PostMapping("pw-reset")
-    public String passwordReset(
+    public ResponseEntity<String> passwordReset(
 		@RequestBody User theUser,
 		final HttpServletResponse response
 	) throws IOException, URISyntaxException {
         String message = "Si el correo ingresado está asociado a una cuenta, " +
 		"pronto recibirá un mensaje para restablecer su contraseña.";
+		ResponseEntity<String> securityResponse = new ResponseEntity<>(HttpStatus.BAD_REQUEST);;
 
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
 
@@ -178,13 +179,21 @@ public class SecurityController {
             body.put("to", theUser.getEmail());
             body.put("template", "PWRESET");
             body.put("url", code);
-            body.put("subject", "nonad");
-
-            ResponseEntity<String> answer = this.theHttpService.postNotification("/send_email", body);
-            System.out.println(answer);
+			
+            ResponseEntity<String> notificationResponse = this.theHttpService.postNotification("/send_email", body);
+			JSONObject json = new JSONObject(notificationResponse.getBody())
+					.put("session_id", theSession.get_id())
+					.put("message", message);
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			securityResponse = new ResponseEntity<String>(
+				json.toString(),
+				headers,
+				notificationResponse.getStatusCode()
+			);
         }
 
-        return message;
+        return securityResponse;
     }
 
 
