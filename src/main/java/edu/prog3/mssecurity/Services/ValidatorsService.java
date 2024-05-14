@@ -42,7 +42,7 @@ public class ValidatorsService {
             url = url.replaceAll("[0-9a-fA-F]{24}|\\d+", "?");
             //System.out.println("URL después de la expreg: " + url + " - método " + method);
 
-            Permission thePermission = this.thePermissionRepository.getPermission(url,method);
+            Permission thePermission = this.thePermissionRepository.getPermission(url, method);
             if(theRole != null && thePermission != null) {
                 //System.out.println("Rol " + theRole.getName() + " Permission " + thePermission.getUrl());
                 RolePermission theRolePermission = this.theRolePermissionRepository.getRolePermission(

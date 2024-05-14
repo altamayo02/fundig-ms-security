@@ -7,40 +7,35 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 
 @Service
 public class HttpService {
-    
     @Value("${url.notification}")
     private String url;
 
 
-    public String consumePostNotification(String ruta, JSONObject body) {
-
-        String answer="";
-
-        HttpHeaders headers= new HttpHeaders();
+    public ResponseEntity<String> postNotification(String route, JSONObject body) {
+		HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> httpEntity= new HttpEntity<>(body.toString(), headers);
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        URI url;
+        HttpEntity<String> httpEntity = new HttpEntity<>(body.toString(), headers);
+		
+        ResponseEntity<String> response;
         try {
-            url = new URI(this.url);
-            answer = restTemplate.postForObject(url+ruta,httpEntity, String.class);
+            URI url = new URI(this.url);
+			RestTemplate restTemplate = new RestTemplate();
+            response = restTemplate.postForEntity(url + route, httpEntity, String.class);
         } catch (URISyntaxException e) {
-            // TODO Auto-generated catch block
-            answer=e.toString();
+            response = new ResponseEntity<>(e.toString(), headers, HttpStatus.FAILED_DEPENDENCY);
             e.printStackTrace();
         }
-
-        return answer;
+		
+        return response;
     }
 
 }

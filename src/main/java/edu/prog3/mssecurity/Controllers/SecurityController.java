@@ -2,6 +2,10 @@ package edu.prog3.mssecurity.Controllers;
 
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,12 +56,12 @@ public class SecurityController {
 
 	
     @PostMapping("login")
-    public String login(
+    public ResponseEntity<String> login(
         @RequestBody User theUser,
-        final HttpServletResponse response
+        final HttpServletResponse servletResponse
     ) throws IOException {
         User theCurrentUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
-        String message = "";
+        ResponseEntity<String> securityResponse = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         if (theCurrentUser != null) {
             if (theCurrentUser.getPassword().equals(
@@ -71,12 +75,18 @@ public class SecurityController {
                 body.put("to", theUser.getEmail());
                 body.put("template", "TWOFACTOR");
                 body.put("pin", code);
-                body.put("subject", "holi");
 
-                String answer= this.theHttpService.consumePostNotification ("/send_email", body);
-                System.out.println(answer);
-                
-                message = session.get_id();
+                ResponseEntity<String> notificationResponse = this.theHttpService.postNotification("/send_email", body);
+                JSONObject json = new JSONObject(
+					notificationResponse.getBody()).put("session_id", session.get_id()
+				);
+				HttpHeaders headers = new HttpHeaders();
+				headers.setContentType(MediaType.APPLICATION_JSON);
+                securityResponse = new ResponseEntity<String>(
+					json.toString(),
+					headers,
+					notificationResponse.getStatusCode()
+				);
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
                     	.getErrorStatisticByUser(theCurrentUser.get_id());
@@ -90,58 +100,62 @@ public class SecurityController {
 				}
                 this.theErrorStatisticRepository.save(theErrorStatistic);
 
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                servletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            servletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
-        return message;
+        return securityResponse;
     }
 
-
     @PostMapping("2FA")
-    public String twoFactorAuth(
+    public ResponseEntity<String> twoFactorAuth(
 		@RequestBody Session theIncomingSession,
-		final HttpServletResponse response
+		final HttpServletResponse servletResponse
 	) throws IOException {
-        Session theCurrentSession = this.theSessionRepository.findBy_id(
+        Session theActiveSession = this.theSessionRepository.findBy_id(
 			new ObjectId(theIncomingSession.get_id())
 		);
         String token = "";
 
-        if(theCurrentSession != null) {
+        if(theActiveSession != null) {
             if (
-                theCurrentSession.getCode().equals(theIncomingSession.getCode()) &&
-                theCurrentSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
-                !theCurrentSession.isUse()
+                theActiveSession.getCode().equals(theIncomingSession.getCode()) &&
+                theActiveSession.getExpirationDateTime().isAfter(LocalDateTime.now()) &&
+                !theActiveSession.isUsed()
             ) {
                 User theCurrentUser = this.theUserRepository.getUserByEmail(
-                    theCurrentSession.getUser().getEmail()
+                    theActiveSession.getUser().getEmail()
                 );
 
                 token = this.theJwtService.generateToken(theCurrentUser);
-                theCurrentSession.setUse(true);
-                this.theSessionRepository.save(theCurrentSession);
+                theActiveSession.setUsed(true);
+                this.theSessionRepository.save(theActiveSession);
             } else {
                 ErrorStatistic theErrorStatistic = theErrorStatisticRepository
-                    	.getErrorStatisticByUser(theCurrentSession.getUser().get_id());
+                    	.getErrorStatisticByUser(theActiveSession.getUser().get_id());
                 
                 if (theErrorStatistic != null) {
                     theErrorStatistic.setNumAuthErrors(
                         theErrorStatistic.getNumAuthErrors() + 1
                     );
                 } else {
-					theErrorStatistic = new ErrorStatistic(0, 1, theCurrentSession.getUser());
+					theErrorStatistic = new ErrorStatistic(0, 1, theActiveSession.getUser());
 				}
                 this.theErrorStatisticRepository.save(theErrorStatistic);
 
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                servletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            servletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
 
-        return token;
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		ResponseEntity<String> response = new ResponseEntity<>(
+			new JSONObject().put("token", token).toString(), headers, HttpStatus.OK
+		);
+        return response;
     }
 
     @PostMapping("pw-reset")
@@ -166,9 +180,8 @@ public class SecurityController {
             body.put("url", code);
             body.put("subject", "nonad");
 
-            String answer= this.theHttpService.consumePostNotification ("/send_email", body);
+            ResponseEntity<String> answer = this.theHttpService.postNotification("/send_email", body);
             System.out.println(answer);
-
         }
 
         return message;
