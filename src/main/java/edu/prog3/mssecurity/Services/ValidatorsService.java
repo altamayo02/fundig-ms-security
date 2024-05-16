@@ -26,8 +26,8 @@ public class ValidatorsService {
     private RolePermissionRepository theRolePermissionRepository;
     @Autowired
     private ErrorStatisticRepository theErrorStatisticRepository;
-	@Value("${id.superuser}")
-	private String superuserId;
+	@Value("${id.role.superuser}")
+	private String superuserRoleId;
     private static final String BEARER_PREFIX = "Bearer ";
 
 
@@ -39,8 +39,9 @@ public class ValidatorsService {
         boolean success = false;
         User theUser = this.getUser(request);
         if (theUser != null) {
+
             Role theRole = theUser.getRole();
-			if (theRole.get_id().equals(this.superuserId)) {
+			if (theRole.get_id().equals(this.superuserRoleId)) {
 				success = true;
 				return success;
 			}
@@ -74,7 +75,12 @@ public class ValidatorsService {
             } else {
 				success = false;
 			}
-        }
+        } else {
+			success = (
+				url.startsWith("/api/public/") ||
+				url.equals("/api/users/create")
+			);
+		}
         return success;
     }
 	

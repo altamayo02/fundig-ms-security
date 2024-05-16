@@ -47,7 +47,7 @@ public class UsersController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping
+    @PostMapping("create")
     public User create(@RequestBody User theNewUser) {
         theNewUser.setPassword(theSecurityService.convertSHA256(theNewUser.getPassword()));
         return this.theUserRepository.save(theNewUser);
