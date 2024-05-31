@@ -96,7 +96,7 @@ public class ValidatorsService {
             User theUserFromToken = jwtService.getUserFromToken(token);
             if(theUserFromToken != null) {
                 theUser = this.theUserRepository
-					.findById(theUserFromToken.get_id())
+					.find(theUserFromToken.get_id())
 					.orElse(null);
 				// Keep the password hidden
                 theUser.setPassword("");

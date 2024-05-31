@@ -42,7 +42,7 @@ public class PermissionsController {
     @DeleteMapping("{id}")
     public void delete(@PathVariable String id) {
         Permission thePermission = this.thePermissionRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (thePermission != null) {
             this.thePermissionRepository.delete(thePermission);

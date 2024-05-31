@@ -41,10 +41,10 @@ public class RolePermissionController {
     @PostMapping("role/{roleId}/permission/{permissionId}")
     public RolePermission create(@PathVariable String roleId, @PathVariable String permissionId) {
         Role theRole = this.theRoleRepository
-                .findById(roleId)
+                .find(roleId)
                 .orElse(null);
         Permission thePermission = this.thePermissionRepository
-                .findById(permissionId)
+                .find(permissionId)
                 .orElse(null);
 
         if (theRole != null && thePermission != null) {
@@ -61,7 +61,7 @@ public class RolePermissionController {
     @DeleteMapping("{id}")
     public void delete(@PathVariable String id) {
         RolePermission theRolePermission = this.theRolePermissionRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (theRolePermission != null) {
             this.theRolePermissionRepository.delete(theRolePermission);

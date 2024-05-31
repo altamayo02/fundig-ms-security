@@ -33,9 +33,9 @@ public class UsersController {
     }
 
     @GetMapping("{id}")
-    public User findById(@PathVariable String id) {
+    public User find(@PathVariable String id) {
         User theUser = this.theUserRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         return theUser;
     }
@@ -56,7 +56,7 @@ public class UsersController {
     @PutMapping("{id}")
     public User update(@PathVariable String id, @RequestBody User theNewUser) {
         User theCurrentUser = this.theUserRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (theCurrentUser != null) {
             theCurrentUser.setName(theNewUser.getName());
@@ -69,10 +69,10 @@ public class UsersController {
     @PutMapping("{userId}/role/{roleId}")
     public User matchRole(@PathVariable String userId,@PathVariable String roleId) {
         User theCurrentUser = this.theUserRepository
-                .findById(userId)
+                .find(userId)
                 .orElse(null);
         Role theCurrentRole = this.theRoleRepository
-                .findById(roleId)
+                .find(roleId)
                 .orElse(null);
 
         if (theCurrentUser != null && theCurrentRole != null) {
@@ -84,10 +84,10 @@ public class UsersController {
     @PutMapping("{userId}/unmatch-role/{roleId}")
     public User unMatchRole(@PathVariable String userId, @PathVariable String roleId) {
         User theCurrentUser = this.theUserRepository
-                .findById(userId)
+                .find(userId)
                 .orElse(null);
         Role theCurrentRole = this.theRoleRepository
-                .findById(roleId)
+                .find(roleId)
                 .orElse(null);
 
         if (
@@ -103,7 +103,7 @@ public class UsersController {
     @DeleteMapping("{id}")
     public void delete(@PathVariable String id) {
         User theUser = this.theUserRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (theUser != null) {
             this.theUserRepository.delete(theUser);

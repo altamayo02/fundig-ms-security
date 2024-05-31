@@ -22,9 +22,9 @@ public class RolesController {
     }
     
     @GetMapping("{id}")
-    public Role findById(@PathVariable String id) {
+    public Role find(@PathVariable String id) {
         Role theRole = this.theRoleRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         return theRole;
     }
@@ -38,7 +38,7 @@ public class RolesController {
     @PutMapping("{id}")
     public Role update(@PathVariable String id, @RequestBody Role theNewRole) {
         Role theCurrentRole = this.theRoleRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (theCurrentRole != null) {
             theCurrentRole.setName(theNewRole.getName());
@@ -52,7 +52,7 @@ public class RolesController {
     @DeleteMapping("{id}")
     public void delete(@PathVariable String id) {
         Role theRole = this.theRoleRepository
-                .findById(id)
+                .find(id)
                 .orElse(null);
         if (theRole != null) {
             this.theRoleRepository.delete(theRole);
